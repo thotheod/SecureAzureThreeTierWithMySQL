@@ -1,0 +1,72 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "privateEndpoints_pe_mysql_name": {
+            "defaultValue": "pe-mysql",
+            "type": "String"
+        },
+        "servers_mysqltest1_externalid": {
+            "defaultValue": "/subscriptions/0a52391c-0d81-434e-90b4-d04f5c670e8a/resourceGroups/rg-recommendations/providers/Microsoft.DBforMySQL/servers/mysqltest1",
+            "type": "String"
+        },
+        "virtualNetworks_vnet_rcmnd_ngn_externalid": {
+            "defaultValue": "/subscriptions/0a52391c-0d81-434e-90b4-d04f5c670e8a/resourceGroups/rg-recommendations/providers/Microsoft.Network/virtualNetworks/vnet-rcmnd-ngn",
+            "type": "String"
+        },
+        "privateDnsZones_privatelink_mysql_database_azure_com_externalid": {
+            "defaultValue": "/subscriptions/0a52391c-0d81-434e-90b4-d04f5c670e8a/resourceGroups/rg-recommendations/providers/Microsoft.Network/privateDnsZones/privatelink.mysql.database.azure.com",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2020-11-01",
+            "name": "[parameters('privateEndpoints_pe_mysql_name')]",
+            "location": "northeurope",
+            "properties": {
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[parameters('privateEndpoints_pe_mysql_name')]",
+                        "properties": {
+                            "privateLinkServiceId": "[parameters('servers_mysqltest1_externalid')]",
+                            "groupIds": [
+                                "mysqlServer"
+                            ],
+                            "privateLinkServiceConnectionState": {
+                                "status": "Approved",
+                                "description": "Auto-approved",
+                                "actionsRequired": "None"
+                            }
+                        }
+                    }
+                ],
+                "manualPrivateLinkServiceConnections": [],
+                "subnet": {
+                    "id": "[concat(parameters('virtualNetworks_vnet_rcmnd_ngn_externalid'), '/subnets/default')]"
+                },
+                "customDnsConfigs": []
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "apiVersion": "2020-11-01",
+            "name": "[concat(parameters('privateEndpoints_pe_mysql_name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('privateEndpoints_pe_mysql_name'))]"
+            ],
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name": "privatelink-mysql-database-azure-com",
+                        "properties": {
+                            "privateDnsZoneId": "[parameters('privateDnsZones_privatelink_mysql_database_azure_com_externalid')]"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

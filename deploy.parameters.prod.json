@@ -1,0 +1,25 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourceTags": {
+            "value": {
+                "Environment": "Prod",
+                "Project": "RecommendationEngine"
+            }
+        },
+        "dbAdminLogin": {
+            "value": "thotheod"
+        },
+        "dbAdminPassword": {
+            "value": "zxNMasKL12()"
+        },
+        "mySQLDBName": {
+            "value": "mysqldbthotheod"
+        }
+        ,
+        "sbName": {
+            "value": "myServiceBus"
+        }
+    }
+}

@@ -1,0 +1,150 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namespaces_mysbtt2021_1_name": {
+            "defaultValue": "mysbtt2021-1",
+            "type": "String"
+        },
+        "privateEndpoints_peSB1_externalid": {
+            "defaultValue": "/subscriptions/0a52391c-0d81-434e-90b4-d04f5c670e8a/resourceGroups/rg-recommendations/providers/Microsoft.Network/privateEndpoints/peSB1",
+            "type": "String"
+        },
+        "virtualNetworks_vnet_rcmnd_ngn_externalid": {
+            "defaultValue": "/subscriptions/0a52391c-0d81-434e-90b4-d04f5c670e8a/resourceGroups/rg-recommendations/providers/Microsoft.Network/virtualNetworks/vnet-rcmnd-ngn",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.ServiceBus/namespaces",
+            "apiVersion": "2021-01-01-preview",
+            "name": "[parameters('namespaces_mysbtt2021_1_name')]",
+            "location": "North Europe",
+            "sku": {
+                "name": "Premium",
+                "tier": "Premium",
+                "capacity": 1
+            },
+            "properties": {
+                "zoneRedundant": true,
+                "privateEndpointConnections": [
+                    {
+                        "properties": {
+                            "provisioningState": "Succeeded",
+                            "privateEndpoint": {
+                                "id": "[parameters('privateEndpoints_peSB1_externalid')]"
+                            },
+                            "privateLinkServiceConnectionState": {
+                                "status": "Approved",
+                                "description": "Auto-Approved"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.ServiceBus/namespaces/AuthorizationRules",
+            "apiVersion": "2017-04-01",
+            "name": "[concat(parameters('namespaces_mysbtt2021_1_name'), '/RootManageSharedAccessKey')]",
+            "location": "North Europe",
+            "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', parameters('namespaces_mysbtt2021_1_name'))]"
+            ],
+            "properties": {
+                "rights": [
+                    "Listen",
+                    "Manage",
+                    "Send"
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.ServiceBus/namespaces/networkRuleSets",
+            "apiVersion": "2018-01-01-preview",
+            "name": "[concat(parameters('namespaces_mysbtt2021_1_name'), '/default')]",
+            "location": "North Europe",
+            "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', parameters('namespaces_mysbtt2021_1_name'))]"
+            ],
+            "properties": {
+                "defaultAction": "Deny",
+                "virtualNetworkRules": [
+                    {
+                        "subnet": {
+                            "id": "[concat(parameters('virtualNetworks_vnet_rcmnd_ngn_externalid'), '/subnets/webservers')]"
+                        },
+                        "ignoreMissingVnetServiceEndpoint": false
+                    }
+                ],
+                "ipRules": []
+            }
+        },
+        {
+            "type": "Microsoft.ServiceBus/namespaces/privateEndpointConnections",
+            "apiVersion": "2018-01-01-preview",
+            "name": "[concat(parameters('namespaces_mysbtt2021_1_name'), '/3f63b374-0e7d-4956-88dd-489a0c60de48')]",
+            "location": "North Europe",
+            "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', parameters('namespaces_mysbtt2021_1_name'))]"
+            ],
+            "properties": {
+                "provisioningState": "Succeeded",
+                "privateEndpoint": {
+                    "id": "[parameters('privateEndpoints_peSB1_externalid')]"
+                },
+                "privateLinkServiceConnectionState": {
+                    "status": "Approved",
+                    "description": "Auto-Approved"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.ServiceBus/namespaces/queues",
+            "apiVersion": "2018-01-01-preview",
+            "name": "[concat(parameters('namespaces_mysbtt2021_1_name'), '/queue1')]",
+            "location": "North Europe",
+            "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', parameters('namespaces_mysbtt2021_1_name'))]"
+            ],
+            "properties": {
+                "lockDuration": "PT30S",
+                "maxSizeInMegabytes": 1024,
+                "requiresDuplicateDetection": true,
+                "requiresSession": true,
+                "defaultMessageTimeToLive": "P14D",
+                "deadLetteringOnMessageExpiration": true,
+                "enableBatchedOperations": true,
+                "duplicateDetectionHistoryTimeWindow": "PT10M",
+                "maxDeliveryCount": 10,
+                "status": "Active",
+                "autoDeleteOnIdle": "P10675199DT2H48M5.4775807S",
+                "enablePartitioning": false,
+                "enableExpress": false
+            }
+        },
+        {
+            "type": "Microsoft.ServiceBus/namespaces/topics",
+            "apiVersion": "2018-01-01-preview",
+            "name": "[concat(parameters('namespaces_mysbtt2021_1_name'), '/topic1')]",
+            "location": "North Europe",
+            "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', parameters('namespaces_mysbtt2021_1_name'))]"
+            ],
+            "properties": {
+                "defaultMessageTimeToLive": "P14D",
+                "maxSizeInMegabytes": 1024,
+                "requiresDuplicateDetection": true,
+                "duplicateDetectionHistoryTimeWindow": "PT10M",
+                "enableBatchedOperations": true,
+                "status": "Active",
+                "supportOrdering": true,
+                "autoDeleteOnIdle": "P14D",
+                "enablePartitioning": false,
+                "enableExpress": false
+            }
+        }
+    ]
+}
