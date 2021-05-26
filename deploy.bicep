@@ -319,7 +319,7 @@ module vmJumpBox 'modules/jumpBox.module.bicep' = {
     tags: resourceTags
     adminUserName: vmAdminUserName
     adminPassword: vmAdminPassword
-    dnsLabelPrefix: vmName
+    dnsLabelPrefix: 'vmwin'
     subnetId: vnet.outputs.snetAdminID
     vmSize: vmSize
     windowsOSVersion: windowsOSVersion
