@@ -70,18 +70,37 @@ param privateDNSZoneNameForSB string = 'privatelink.servicebus.windows.net'
 param serviceLinkGroupIdsForSB array = [
   'namespace'
 ]
-// param sbRuleSetVnetSubnetID string
+
+// PARAMS Function
+param funcWithPrivateLink bool = true
+param linuxFunctionRuntime string = 'Java|11'
+param privateDNSZoneNameForFuncApp string = 'privatelink.azurewebsites.net'
+param serviceLinkGroupIdsForFuncApp array = [
+  'sites'
+]
+param funcRuntime string = 'java'
+
+//PARAMS Func storage
+param funcStorKind string = 'StorageV2'
+param funcStorSku object = {
+  name: 'Standard_LRS'
+  tier: 'Standard'
+}
 
 // VARS
 var vnetName = 'vnet-${suffix}'
 var aspName = 'plan-${suffix}'
 var webAppName = 'app-${suffix}'
+var funcAppName = 'func-${suffix}'
+var peFuncName = 'pe-${funcAppName}' 
 var peWebAppName = 'pe-${webAppName}'
 var peMySQLName = 'pe-${mySQLDBName}'
 var sbNamespaceName = 'sb-${sbName}'
 var peSBName = 'pe-${sbNamespaceName}'
 var sbQueueName = 'sbq-${sbName}'
 var sbTopicName = 'sbt-${sbName}'
+var appInsightsName = 'appi-${suffix}'
+var funcStorageName = 'st${suffix}'
 
 // CREATE RESOURCES
 module vnet 'modules/vnet.module.bicep' = {
@@ -186,7 +205,7 @@ module sb 'modules/SB.module.bicep' = {
 }
 
 module sbPrivateLink 'modules/PE.module.bicep' = if (sbBehindPrivateEndpoint) {
-  name: 'PEWebAppDeployment-${peSBName}'
+  name: 'PESBDeployment-${peSBName}'
   params: {
     PrivEndpointName: peSBName
     region: resourceGroup().location
@@ -196,5 +215,57 @@ module sbPrivateLink 'modules/PE.module.bicep' = if (sbBehindPrivateEndpoint) {
     pLinkServiceID: sb.outputs.sbID
     privateDNSZoneName: privateDNSZoneNameForSB
     serviceLinkGroupIds: serviceLinkGroupIdsForSB
+  }
+}
+
+module funcApp 'modules/func.module.bicep' = {
+  name: 'FuncDeployment-${funcAppName}'
+  params: {
+    name: funcAppName
+    region: resourceGroup().location
+    tags: resourceTags
+    subnetId: vnet.outputs.snetWSID
+    serverFarmId: asp.outputs.serverFarmId
+    funcAppSettings: []
+    funcAppInsInstrumentationKey: appInsights.outputs.instrumentationKey
+    funcStorageConnectionString: funcStorage.outputs.connectionString
+    linuxFuncRuntime: linuxFunctionRuntime
+    numberOfFuncWorkers: 1
+    funcWithPrivateLink: funcWithPrivateLink
+    runtime: funcRuntime
+  }
+}
+
+module funcPrivateLink 'modules/PE.module.bicep' = if (funcWithPrivateLink) {
+  name: 'PEFuncDeployment-${peFuncName}'
+  params: {
+    PrivEndpointName: peFuncName
+    region: resourceGroup().location
+    tags: resourceTags
+    vnetID: vnet.outputs.vnetID
+    snetID: vnet.outputs.snetDefaultID
+    pLinkServiceID: funcApp.outputs.funcAppID
+    privateDNSZoneName: privateDNSZoneNameForFuncApp
+    serviceLinkGroupIds: serviceLinkGroupIdsForFuncApp
+  }
+}
+
+module appInsights 'modules/appInsights.module.bicep' = {
+  name: 'appInsightsDeployment-${appInsightsName}'
+  params: {
+    name: appInsightsName
+    region: resourceGroup().location
+    tags: resourceTags
+  }
+}
+
+module funcStorage 'modules/storage.module.bicep' = {
+  name: 'funcStorageDeployment-${funcStorageName}'
+  params: {
+    name: funcStorageName
+    region: resourceGroup().location
+    tags: resourceTags
+    kind: funcStorKind
+    sku: funcStorSku
   }
 }
