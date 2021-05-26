@@ -16,8 +16,13 @@
         },
         "mySQLDBName": {
             "value": "mysqldbthotheod"
-        }
-        ,
+        },
+        "vmAdminUserName": {
+            "value": "thotheod"
+        },
+        "vmAdminPassword": {
+            "value": "zxNMasKL12()"
+        },  
         "sbName": {
             "value": "myServiceBus20210525-01"
         }

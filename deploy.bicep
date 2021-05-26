@@ -72,7 +72,7 @@ param serviceLinkGroupIdsForSB array = [
 ]
 
 // PARAMS Function
-param funcWithPrivateLink bool = true
+param funcWithPrivateLink bool = false
 param linuxFunctionRuntime string = 'Java|11'
 param privateDNSZoneNameForFuncApp string = 'privatelink.azurewebsites.net'
 param serviceLinkGroupIdsForFuncApp array = [
@@ -86,6 +86,22 @@ param funcStorSku object = {
   name: 'Standard_LRS'
   tier: 'Standard'
 }
+
+//PARAMS App GW
+param appGwaySKU string = 'Standard_v2'
+param aGwMinCapacity int = 1
+param aGwMaxCapacity int = 10
+param aGwBackendIPAddresses array = []
+param appGateWayName string = 'agw-${suffix}'
+
+//PARAM jumpHostVM
+param vmName string = 'vmWinJumpHost'
+@secure()
+param vmAdminUserName string
+@secure()
+param vmAdminPassword string
+param windowsOSVersion string = '2019-Datacenter'
+param vmSize string = 'Standard_D2_v3'
 
 // VARS
 var vnetName = 'vnet-${suffix}'
@@ -101,6 +117,7 @@ var sbQueueName = 'sbq-${sbName}'
 var sbTopicName = 'sbt-${sbName}'
 var appInsightsName = 'appi-${suffix}'
 var funcStorageName = 'st${suffix}'
+var pipAppGWName = 'pip-${appGateWayName}'
 
 // CREATE RESOURCES
 module vnet 'modules/vnet.module.bicep' = {
@@ -174,7 +191,7 @@ module dbMySQL 'modules/mySQLDB.module.bicep' = {
 }
 
 module mySQLPrivateLink 'modules/PE.module.bicep' = if (mySQLBehindPrivateEndpoint) {
-  name: 'PEWebAppDeployment-${peMySQLName}'
+  name: 'PE-MySQLDeployment-${peMySQLName}'
   params: {
     PrivEndpointName: peMySQLName
     region: resourceGroup().location
@@ -267,5 +284,44 @@ module funcStorage 'modules/storage.module.bicep' = {
     tags: resourceTags
     kind: funcStorKind
     sku: funcStorSku
+  }
+}
+
+module pipAppGateWay 'modules/pipStaticStandard.module.bicep' = {
+  name: 'pipAppGateWayDeployment'
+  params:{
+    name: pipAppGWName
+    region: resourceGroup().location
+    tags: resourceTags
+  }
+}
+
+module appGW 'modules/WAF.module.bicep' = {
+  name: 'appGWDeployment-${appGateWayName}'
+  params:{
+    name: appGateWayName
+    region: resourceGroup().location
+    tags: resourceTags
+    appGwaySKU: appGwaySKU
+    backendIPAddresses: aGwBackendIPAddresses
+    minCapacity: aGwMinCapacity
+    maxCapacity: aGwMaxCapacity
+    pipID: pipAppGateWay.outputs.pipID
+    subnetID: vnet.outputs.snetWAFID
+  }
+}
+
+module vmJumpBox 'modules/jumpBox.module.bicep' = {
+  name: 'VMDeployment-${vmName}'
+  params: {
+    name: vmName
+    location: resourceGroup().location
+    tags: resourceTags
+    adminUserName: vmAdminUserName
+    adminPassword: vmAdminPassword
+    dnsLabelPrefix: vmName
+    subnetId: vnet.outputs.snetAdminID
+    vmSize: vmSize
+    windowsOSVersion: windowsOSVersion
   }
 }
