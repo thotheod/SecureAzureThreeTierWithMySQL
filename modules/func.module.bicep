@@ -98,7 +98,7 @@ resource webAppHostBinding 'Microsoft.Web/sites/hostNameBindings@2019-08-01' = i
   }
 }
 
-resource webSiteConfigVnetInjection 'Microsoft.Web/sites/config@2020-12-01' = {
+resource webSiteConfigVnetInjection 'Microsoft.Web/sites/config@2020-12-01' = if ( !empty(subnetId) ) {
   name: '${funcApp.name}/VirtualNetwork'
   properties: {
     subnetResourceId: subnetId

@@ -8,6 +8,22 @@
                 "Project": "RecommendationEngine"
             }
         },
+        "skuAspObject": {
+            "value": {
+                "skuName": "B1",
+                "skuTier": "Basic"
+            }
+        },
+        "mySqlSkuObject": {
+            "value": {
+                "Capacity": 1,
+                "SkuTier": "Basic",
+                "SkuFamily": "Gen5",
+                "SkuName": "B_Gen5_1",
+                "DBSize": 51200,
+                "mySQLVersion": "5.7"
+            }
+        },
         "dbAdminLogin": {
             "value": "thotheod"
         },
@@ -15,7 +31,7 @@
             "value": "zxNMasKL12()"
         },
         "mySQLDBName": {
-            "value": "mysqldbthotheod"
+            "value": "mysqldb-dev-202105"
         },
         "vmAdminUserName": {
             "value": "thotheod"
@@ -23,8 +39,8 @@
         "vmAdminPassword": {
             "value": "zxNMasKL12()"
         },  
-        "sbName": {
-            "value": "myServiceBus20210525-01"
+        "sbSku" :{
+            "value": "Standard"
         }
     }
 }

@@ -38,7 +38,7 @@ resource webSiteConfigAppSettings 'Microsoft.Web/sites/config@2020-12-01' = {
   }
 }
 
-resource webSiteConfigVnetInjection 'Microsoft.Web/sites/config@2020-12-01' = {
+resource webSiteConfigVnetInjection 'Microsoft.Web/sites/config@2020-12-01' = if (!empty(subnetId)) {
   name: '${webApp.name}/VirtualNetwork'
   properties: {
     subnetResourceId: subnetId

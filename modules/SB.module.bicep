@@ -1,7 +1,6 @@
 param name string
 param region string
 param tags object
-param sbBehindPrivateEndpoint bool
 
 @allowed([
   'Basic'
@@ -21,7 +20,6 @@ param sbCreateQueue bool
 param sbQueueName string = ''
 param sbCreateTopic bool
 param sbTopicName string = ''
-param vnetSubnetID string = ''
 
 resource sb 'Microsoft.ServiceBus/namespaces@2021-01-01-preview' = {
   name: name
@@ -56,14 +54,14 @@ resource sbQueue 'Microsoft.ServiceBus/namespaces/queues@2018-01-01-preview' = i
     deadLetteringOnMessageExpiration: true
     duplicateDetectionHistoryTimeWindow: 'PT10M'
     maxDeliveryCount: 10
-    autoDeleteOnIdle: 'P10675199DT2H48M5.4775807S'
+    autoDeleteOnIdle: contains('sku', 'Basic') ? '' : 'P10675199DT2H48M5.4775807S'
     enablePartitioning: false
     enableExpress: false
   }
 }
 
 resource sbTopic 'Microsoft.ServiceBus/namespaces/topics@2018-01-01-preview' = if (sbCreateTopic) {
-  name:  '${sb.name}/${sbTopicName}'
+  name: '${sb.name}/${sbTopicName}'
   properties: {
     defaultMessageTimeToLive: 'P14D'
     maxSizeInMegabytes: 1024

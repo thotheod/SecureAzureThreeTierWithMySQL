@@ -32,14 +32,6 @@ param tags object
 
 @allowed([
   {
-    skuName: 'F1'
-    skuTier: 'Free'
-  }
-  {
-    skuName: 'D1'
-    skuTier: 'Free'
-  }
-  {
     skuName: 'B1'
     skuTier: 'Basic'
   }

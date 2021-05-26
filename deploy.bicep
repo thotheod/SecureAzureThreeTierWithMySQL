@@ -32,47 +32,39 @@ param snetBastion object = {
 
 
 // PARAMS App Service Plan
-param skuAspObject object = {
-  skuName: 'P1v3'
-  skuTier: 'PremiumV3'
-}
+param skuAspObject object
 param AspOsType string = 'linux'
-param webAppWithPrivateLink bool = true //needs the web app be behind private link?
 param privateDNSZoneNameForWebApp string = 'privatelink.azurewebsites.net'
 param serviceLinkGroupIdsForWebApp array = [
   'sites'
 ]
+var webAppWithPrivateLink = contains(skuAspObject.skuTier, 'Premium')
+var isWebAppVnetIntegrated = contains(skuAspObject.skuTier, 'Premium') || contains(skuAspObject.skuTier, 'Standard')
 
 // PARAMS MySQL Server
 param dbAdminLogin string
 param dbAdminPassword string 
-param dbSkuCapacity int = 2
-param dbSkuName string = 'GP_Gen5_2'
-param dbSkuSizeInMB int = 51200
-param dbSkuTier string = 'GeneralPurpose'
-param dbSkuFamily string = 'Gen5'
-param mySQLVersion string = '5.7'
+param mySqlSkuObject object
+
 param mySQLDBName string
-param mySQLBehindPrivateEndpoint bool = true
+param mySQLBehindPrivateEndpoint bool = !contains(mySqlSkuObject.SkuTier, 'Basic')
 param privateDNSZoneNameForMySQL string = 'privatelink.mysql.database.azure.com'
 param serviceLinkGroupIdsForMySQL array = [
   'mysqlServer'
 ]
 
 //PARAMS ServiceBus
-param sbName string
-param sbSku string = 'Premium'
+param sbSku string 
 param sbCapacity int = 1
 param sbCreateQueue bool = true
-param sbCreateTopic bool = true
-param sbBehindPrivateEndpoint bool = true
+param sbCreateTopic bool = !contains(sbSku, 'Basic')
+param sbBehindPrivateEndpoint bool = contains(sbSku, 'Premium')
 param privateDNSZoneNameForSB string = 'privatelink.servicebus.windows.net'
 param serviceLinkGroupIdsForSB array = [
   'namespace'
 ]
 
 // PARAMS Function
-param funcWithPrivateLink bool = false
 param linuxFunctionRuntime string = 'Java|11'
 param privateDNSZoneNameForFuncApp string = 'privatelink.azurewebsites.net'
 param serviceLinkGroupIdsForFuncApp array = [
@@ -104,20 +96,21 @@ param windowsOSVersion string = '2019-Datacenter'
 param vmSize string = 'Standard_D2_v3'
 
 // VARS
-var vnetName = 'vnet-${suffix}'
-var aspName = 'plan-${suffix}'
-var webAppName = 'app-${suffix}'
-var funcAppName = 'func-${suffix}'
-var peFuncName = 'pe-${funcAppName}' 
-var peWebAppName = 'pe-${webAppName}'
-var peMySQLName = 'pe-${mySQLDBName}'
-var sbNamespaceName = 'sb-${sbName}'
+var env = resourceTags.Environment
+var vnetName = 'vnet-${env}-${suffix}'
+var aspName = 'plan-${env}-${suffix}'
+var webAppName = 'app-${env}-${suffix}'
+var funcAppName = 'func-${env}-${suffix}'
+var peFuncName = 'pe-${env}-${funcAppName}' 
+var peWebAppName = 'pe-${env}-${webAppName}'
+var peMySQLName = 'pe-${env}-${mySQLDBName}'
+var sbNamespaceName = 'sb-${env}-${suffix}'
 var peSBName = 'pe-${sbNamespaceName}'
-var sbQueueName = 'sbq-${sbName}'
-var sbTopicName = 'sbt-${sbName}'
-var appInsightsName = 'appi-${suffix}'
-var funcStorageName = 'st${suffix}'
-var pipAppGWName = 'pip-${appGateWayName}'
+var sbQueueName = 'sbq-${sbNamespaceName}'
+var sbTopicName = 'sbt-${sbNamespaceName}'
+var appInsightsName = 'appi-${env}-${suffix}'
+var funcStorageName = 'st${env}${suffix}'
+var pipAppGWName = 'pip-${env}-${appGateWayName}'
 
 // CREATE RESOURCES
 module vnet 'modules/vnet.module.bicep' = {
@@ -153,7 +146,7 @@ module webApp 'modules/webapp.module.bicep' = {
     region: resourceGroup().location
     tags: resourceTags
     serverFarmId: asp.outputs.serverFarmId
-    subnetId: vnet.outputs.snetWSID
+    subnetId: isWebAppVnetIntegrated ? vnet.outputs.snetWSID : ''
     webAppWithPrivateLink: webAppWithPrivateLink
   }
 }
@@ -177,13 +170,13 @@ module dbMySQL 'modules/mySQLDB.module.bicep' = {
   params: {
     dbAdminLogin: dbAdminLogin
     dbAdminPassword: dbAdminPassword
-    dbSkuCapacity: dbSkuCapacity
-    dbSkuFamily: dbSkuFamily
-    dbSkuName: dbSkuName
-    dbSkuSizeInMB: dbSkuSizeInMB
-    dbSkuTier: dbSkuTier
+    dbSkuCapacity: mySqlSkuObject.Capacity
+    dbSkuFamily: mySqlSkuObject.SkuFamily
+    dbSkuName: mySqlSkuObject.SkuName
+    dbSkuSizeInMB: mySqlSkuObject.DBSize
+    dbSkuTier: mySqlSkuObject.SkuTier
     mySQLBehindPrivateEndpoint: mySQLBehindPrivateEndpoint
-    mySQLVersion: mySQLVersion
+    mySQLVersion: mySqlSkuObject.mySQLVersion
     name: mySQLDBName
     region: resourceGroup().location
     tags: resourceTags
@@ -213,11 +206,9 @@ module sb 'modules/SB.module.bicep' = {
     sbCreateQueue: sbCreateQueue
     sbCreateTopic: sbCreateTopic
     sbQueueName: sbCreateQueue ? sbQueueName : ''
-    sbTopicName: sbCreateTopic ? sbTopicName : ''
+    sbTopicName: sbTopicName 
     sku: sbSku
     tags: resourceTags
-    vnetSubnetID: vnet.outputs.snetWSID
-    sbBehindPrivateEndpoint: sbBehindPrivateEndpoint
   }
 }
 
@@ -235,37 +226,6 @@ module sbPrivateLink 'modules/PE.module.bicep' = if (sbBehindPrivateEndpoint) {
   }
 }
 
-module funcApp 'modules/func.module.bicep' = {
-  name: 'FuncDeployment-${funcAppName}'
-  params: {
-    name: funcAppName
-    region: resourceGroup().location
-    tags: resourceTags
-    subnetId: vnet.outputs.snetWSID
-    serverFarmId: asp.outputs.serverFarmId
-    funcAppSettings: []
-    funcAppInsInstrumentationKey: appInsights.outputs.instrumentationKey
-    funcStorageConnectionString: funcStorage.outputs.connectionString
-    linuxFuncRuntime: linuxFunctionRuntime
-    numberOfFuncWorkers: 1
-    funcWithPrivateLink: funcWithPrivateLink
-    runtime: funcRuntime
-  }
-}
-
-module funcPrivateLink 'modules/PE.module.bicep' = if (funcWithPrivateLink) {
-  name: 'PEFuncDeployment-${peFuncName}'
-  params: {
-    PrivEndpointName: peFuncName
-    region: resourceGroup().location
-    tags: resourceTags
-    vnetID: vnet.outputs.vnetID
-    snetID: vnet.outputs.snetDefaultID
-    pLinkServiceID: funcApp.outputs.funcAppID
-    privateDNSZoneName: privateDNSZoneNameForFuncApp
-    serviceLinkGroupIds: serviceLinkGroupIdsForFuncApp
-  }
-}
 
 module appInsights 'modules/appInsights.module.bicep' = {
   name: 'appInsightsDeployment-${appInsightsName}'
@@ -284,6 +244,38 @@ module funcStorage 'modules/storage.module.bicep' = {
     tags: resourceTags
     kind: funcStorKind
     sku: funcStorSku
+  }
+}
+
+module funcApp 'modules/func.module.bicep' = {
+  name: 'FuncDeployment-${funcAppName}'
+  params: {
+    name: funcAppName
+    region: resourceGroup().location
+    tags: resourceTags
+    subnetId: isWebAppVnetIntegrated ? vnet.outputs.snetWSID : ''
+    serverFarmId: asp.outputs.serverFarmId
+    funcAppSettings: []
+    funcAppInsInstrumentationKey: appInsights.outputs.instrumentationKey
+    funcStorageConnectionString: funcStorage.outputs.connectionString
+    linuxFuncRuntime: linuxFunctionRuntime
+    numberOfFuncWorkers: 1
+    funcWithPrivateLink: webAppWithPrivateLink
+    runtime: funcRuntime
+  }
+}
+
+module funcPrivateLink 'modules/PE.module.bicep' = if (webAppWithPrivateLink) {
+  name: 'PEFuncDeployment-${peFuncName}'
+  params: {
+    PrivEndpointName: peFuncName
+    region: resourceGroup().location
+    tags: resourceTags
+    vnetID: vnet.outputs.vnetID
+    snetID: vnet.outputs.snetDefaultID
+    pLinkServiceID: funcApp.outputs.funcAppID
+    privateDNSZoneName: privateDNSZoneNameForFuncApp
+    serviceLinkGroupIds: serviceLinkGroupIdsForFuncApp
   }
 }
 
@@ -311,7 +303,7 @@ module appGW 'modules/WAF.module.bicep' = {
   }
 }
 
-module vmJumpBox 'modules/jumpBox.module.bicep' = {
+module vmJumpBox 'modules/jumpBox.module.bicep' = if (env == 'Prod') {
   name: 'VMDeployment-${vmName}'
   params: {
     name: vmName

@@ -10,6 +10,7 @@ param mySQLBehindPrivateEndpoint bool
 param dbAdminPassword string 
 
 @allowed([
+  1
   2
   4
   8
@@ -19,6 +20,8 @@ param dbAdminPassword string
 param dbSkuCapacity int
 
 @allowed([
+  'B_Gen5_1'
+  'B_Gen5_2'
   'GP_Gen5_2'
   'GP_Gen5_4'
   'GP_Gen5_8'
@@ -39,6 +42,7 @@ param dbSkuName string
 param dbSkuSizeInMB int
 
 @allowed([
+  'Basic'
   'GeneralPurpose'
   'MemoryOptimized'
 ])
