@@ -6,7 +6,7 @@ green='\e[1;32m%s\e[0m\n'
 blue='\e[1;34m%s\e[0m\n'
 
 # Variables
-SUBSCRIPTION=0a52391c-0d81-434e-90b4-d04f5c670e8a
+SUBSCRIPTION=xxxxxxxxxxxxxxx-xxxxxxxx-xxxxxx-xxxxxxx
 ENVIRONMENT=dev
 RG_NAME="rg-secureThreeTier-${ENVIRONMENT}"
 LOCATION=northeurope
