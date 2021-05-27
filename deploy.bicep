@@ -151,99 +151,24 @@ module webApp 'modules/webapp.module.bicep' = {
   }
 }
 
+module azureSitesDNSZone 'modules/PrivateDNSZones.module.bicep' = if (webAppWithPrivateLink) {
+  name: 'azureSitesDNSZoneDeployment'
+  params: {
+    privateDNSZoneName: privateDNSZoneNameForWebApp
+    vnetID: vnet.outputs.vnetID
+  }
+}
+
 module webAppPrivateLink 'modules/PE.module.bicep' = if (webAppWithPrivateLink) {
   name: 'PEWebAppDeployment-${peWebAppName}'
   params: {
     PrivEndpointName: peWebAppName
     region: resourceGroup().location
     tags: resourceTags
-    vnetID: vnet.outputs.vnetID
     snetID: vnet.outputs.snetDefaultID
     pLinkServiceID: webApp.outputs.webAppID
-    privateDNSZoneName: privateDNSZoneNameForWebApp
-    serviceLinkGroupIds: serviceLinkGroupIdsForWebApp
-  }
-}
-
-module dbMySQL 'modules/mySQLDB.module.bicep' = {
-  name: 'MySQLDeployment-${mySQLDBName}'
-  params: {
-    dbAdminLogin: dbAdminLogin
-    dbAdminPassword: dbAdminPassword
-    dbSkuCapacity: mySqlSkuObject.Capacity
-    dbSkuFamily: mySqlSkuObject.SkuFamily
-    dbSkuName: mySqlSkuObject.SkuName
-    dbSkuSizeInMB: mySqlSkuObject.DBSize
-    dbSkuTier: mySqlSkuObject.SkuTier
-    mySQLBehindPrivateEndpoint: mySQLBehindPrivateEndpoint
-    mySQLVersion: mySqlSkuObject.mySQLVersion
-    name: mySQLDBName
-    region: resourceGroup().location
-    tags: resourceTags
-  }
-}
-
-module mySQLPrivateLink 'modules/PE.module.bicep' = if (mySQLBehindPrivateEndpoint) {
-  name: 'PE-MySQLDeployment-${peMySQLName}'
-  params: {
-    PrivEndpointName: peMySQLName
-    region: resourceGroup().location
-    tags: resourceTags
-    vnetID: vnet.outputs.vnetID
-    snetID: vnet.outputs.snetDefaultID
-    pLinkServiceID: dbMySQL.outputs.mySQLDBId
-    privateDNSZoneName: privateDNSZoneNameForMySQL
-    serviceLinkGroupIds: serviceLinkGroupIdsForMySQL
-  }
-}
-
-module sb 'modules/SB.module.bicep' = {
-  name: 'SBDeployment-${sbNamespaceName}'
-  params: {
-    msgUnits: sbCapacity
-    name: sbNamespaceName
-    region: resourceGroup().location
-    sbCreateQueue: sbCreateQueue
-    sbCreateTopic: sbCreateTopic
-    sbQueueName: sbCreateQueue ? sbQueueName : ''
-    sbTopicName: sbTopicName 
-    sku: sbSku
-    tags: resourceTags
-  }
-}
-
-module sbPrivateLink 'modules/PE.module.bicep' = if (sbBehindPrivateEndpoint) {
-  name: 'PESBDeployment-${peSBName}'
-  params: {
-    PrivEndpointName: peSBName
-    region: resourceGroup().location
-    tags: resourceTags
-    vnetID: vnet.outputs.vnetID
-    snetID: vnet.outputs.snetDefaultID
-    pLinkServiceID: sb.outputs.sbID
-    privateDNSZoneName: privateDNSZoneNameForSB
-    serviceLinkGroupIds: serviceLinkGroupIdsForSB
-  }
-}
-
-
-module appInsights 'modules/appInsights.module.bicep' = {
-  name: 'appInsightsDeployment-${appInsightsName}'
-  params: {
-    name: appInsightsName
-    region: resourceGroup().location
-    tags: resourceTags
-  }
-}
-
-module funcStorage 'modules/storage.module.bicep' = {
-  name: 'funcStorageDeployment-${funcStorageName}'
-  params: {
-    name: funcStorageName
-    region: resourceGroup().location
-    tags: resourceTags
-    kind: funcStorKind
-    sku: funcStorSku
+     serviceLinkGroupIds: serviceLinkGroupIdsForWebApp
+     privateDnsZonesId: azureSitesDNSZone.outputs.privateDnsZonesId
   }
 }
 
@@ -270,12 +195,107 @@ module funcPrivateLink 'modules/PE.module.bicep' = if (webAppWithPrivateLink) {
   params: {
     PrivEndpointName: peFuncName
     region: resourceGroup().location
-    tags: resourceTags
-    vnetID: vnet.outputs.vnetID
+    tags: resourceTags    
     snetID: vnet.outputs.snetDefaultID
-    pLinkServiceID: funcApp.outputs.funcAppID
-    privateDNSZoneName: privateDNSZoneNameForFuncApp
+    pLinkServiceID: funcApp.outputs.funcAppID    
     serviceLinkGroupIds: serviceLinkGroupIdsForFuncApp
+    privateDnsZonesId: azureSitesDNSZone.outputs.privateDnsZonesId
+  }
+}
+
+
+module dbMySQL 'modules/mySQLDB.module.bicep' = {
+  name: 'MySQLDeployment-${mySQLDBName}'
+  params: {
+    dbAdminLogin: dbAdminLogin
+    dbAdminPassword: dbAdminPassword
+    dbSkuCapacity: mySqlSkuObject.Capacity
+    dbSkuFamily: mySqlSkuObject.SkuFamily
+    dbSkuName: mySqlSkuObject.SkuName
+    dbSkuSizeInMB: mySqlSkuObject.DBSize
+    dbSkuTier: mySqlSkuObject.SkuTier
+    mySQLBehindPrivateEndpoint: mySQLBehindPrivateEndpoint
+    mySQLVersion: mySqlSkuObject.mySQLVersion
+    name: mySQLDBName
+    region: resourceGroup().location
+    tags: resourceTags
+  }
+}
+
+module mySQLPrivateLink 'modules/PE.module.bicep' = if (mySQLBehindPrivateEndpoint) {
+  name: 'PE-MySQLDeployment-${peMySQLName}'
+  params: {
+    PrivEndpointName: peMySQLName
+    region: resourceGroup().location
+    tags: resourceTags
+    snetID: vnet.outputs.snetDefaultID
+    pLinkServiceID: dbMySQL.outputs.mySQLDBId
+    serviceLinkGroupIds: serviceLinkGroupIdsForMySQL
+    privateDnsZonesId: mySqlDNSZone.outputs.privateDnsZonesId
+  }
+}
+
+module mySqlDNSZone 'modules/PrivateDNSZones.module.bicep' = if (mySQLBehindPrivateEndpoint) {
+  name: 'MySqlDNSZoneDeployment'
+  params: {
+    privateDNSZoneName: privateDNSZoneNameForMySQL
+    vnetID: vnet.outputs.vnetID
+  }
+}
+
+module sb 'modules/SB.module.bicep' = {
+  name: 'SBDeployment-${sbNamespaceName}'
+  params: {
+    msgUnits: sbCapacity
+    name: sbNamespaceName
+    region: resourceGroup().location
+    sbCreateQueue: sbCreateQueue
+    sbCreateTopic: sbCreateTopic
+    sbQueueName: sbCreateQueue ? sbQueueName : ''
+    sbTopicName: sbTopicName 
+    sku: sbSku
+    tags: resourceTags
+  }
+}
+
+module sbPrivateLink 'modules/PE.module.bicep' = if (sbBehindPrivateEndpoint) {
+  name: 'PESBDeployment-${peSBName}'
+  params: {
+    PrivEndpointName: peSBName
+    region: resourceGroup().location
+    tags: resourceTags
+    snetID: vnet.outputs.snetDefaultID
+    pLinkServiceID: sb.outputs.sbID
+    serviceLinkGroupIds: serviceLinkGroupIdsForSB
+    privateDnsZonesId: sbDNSZone.outputs.privateDnsZonesId
+  }
+}
+
+module sbDNSZone 'modules/PrivateDNSZones.module.bicep' = if (sbBehindPrivateEndpoint) {
+  name: 'sbDNSZoneDeployment'
+  params: {
+    privateDNSZoneName: privateDNSZoneNameForSB
+    vnetID: vnet.outputs.vnetID
+  }
+}
+
+module appInsights 'modules/appInsights.module.bicep' = {
+  name: 'appInsightsDeployment-${appInsightsName}'
+  params: {
+    name: appInsightsName
+    region: resourceGroup().location
+    tags: resourceTags
+  }
+}
+
+module funcStorage 'modules/storage.module.bicep' = {
+  name: 'funcStorageDeployment-${funcStorageName}'
+  params: {
+    name: funcStorageName
+    region: resourceGroup().location
+    tags: resourceTags
+    kind: funcStorKind
+    sku: funcStorSku
   }
 }
 

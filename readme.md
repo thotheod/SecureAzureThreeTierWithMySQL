@@ -1,4 +1,6 @@
-# NOTE: Work in progress
+# Deployment
+edit `deploy.sh` file, set your subscription id and the `env` variable (can be either `dev` or `prod`)
+
 
 # Resources
 - https://github.com/Azure/bicep

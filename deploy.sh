@@ -1,12 +1,14 @@
 #!/bin/bash
 
-# Define variables  
+# Variables
 red='\e[1;31m%s\e[0m\n'
 green='\e[1;32m%s\e[0m\n'
 blue='\e[1;34m%s\e[0m\n'
 
-# Variables
-SUBSCRIPTION=xxxxxxxxxxx
+# Set your Azure Subscription
+SUBSCRIPTION=xxxxxxxxxxxxx
+
+# choice of dev|prod
 ENVIRONMENT=dev
 RG_NAME="rg-secureThreeTier-${ENVIRONMENT}"
 LOCATION=northeurope
