@@ -159,6 +159,7 @@ module azureSitesDNSZone 'modules/PrivateDNSZones.module.bicep' = if (webAppWith
   }
 }
 
+
 module webAppPrivateLink 'modules/PE.module.bicep' = if (webAppWithPrivateLink) {
   name: 'PEWebAppDeployment-${peWebAppName}'
   params: {
@@ -168,7 +169,7 @@ module webAppPrivateLink 'modules/PE.module.bicep' = if (webAppWithPrivateLink) 
     snetID: vnet.outputs.snetDefaultID
     pLinkServiceID: webApp.outputs.webAppID
      serviceLinkGroupIds: serviceLinkGroupIdsForWebApp
-     privateDnsZonesId: azureSitesDNSZone.outputs.privateDnsZonesId
+     privateDnsZonesId:  azureSitesDNSZone.outputs.privateDnsZonesId 
   }
 }
 

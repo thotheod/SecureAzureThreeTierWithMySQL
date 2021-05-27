@@ -35,29 +35,29 @@ resource sb 'Microsoft.ServiceBus/namespaces@2021-01-01-preview' = {
   }
 }
 
-//TODO: Not sure if this is needed and if is correct
-// resource sbRulesets 'Microsoft.ServiceBus/namespaces/virtualnetworkrules@2018-01-01-preview' = if (sbBehindPrivateEndpoint) {
-//   name: '${sb.name}/default'
-//   properties: {
-//     virtualNetworkSubnetId: vnetSubnetID
-//   }
-// }
 
+param sbQueueProps object = {
+  lockDuration: 'PT30S'
+  maxSizeInMegabytes: 1024
+  deadLetteringOnMessageExpiration: true
+  maxDeliveryCount: 10
+  enablePartitioning: false
+}
+
+param sbQueueNonBasicProps object = {    
+  requiresDuplicateDetection:  true
+  requiresSession: true
+  defaultMessageTimeToLive: 'P14D'
+  duplicateDetectionHistoryTimeWindow: 'PT10M'
+  autoDeleteOnIdle:  'P10675199DT2H48M5.4775807S'
+  enableExpress: false
+}
+
+
+//https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-resource-manager-exceptions
 resource sbQueue 'Microsoft.ServiceBus/namespaces/queues@2018-01-01-preview' = if (sbCreateQueue) {
   name: '${sb.name}/${sbQueueName}'
-  properties: {
-    lockDuration: 'PT30S'
-    maxSizeInMegabytes: 1024
-    requiresDuplicateDetection: true
-    requiresSession: true
-    defaultMessageTimeToLive: 'P14D'
-    deadLetteringOnMessageExpiration: true
-    duplicateDetectionHistoryTimeWindow: 'PT10M'
-    maxDeliveryCount: 10
-    autoDeleteOnIdle: contains('sku', 'Basic') ? '' : 'P10675199DT2H48M5.4775807S'
-    enablePartitioning: false
-    enableExpress: false
-  }
+  properties: contains(sku, 'Basic') ? sbQueueProps : union(sbQueueProps, sbQueueNonBasicProps)
 }
 
 resource sbTopic 'Microsoft.ServiceBus/namespaces/topics@2018-01-01-preview' = if (sbCreateTopic) {

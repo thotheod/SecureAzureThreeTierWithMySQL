@@ -6,7 +6,7 @@ green='\e[1;32m%s\e[0m\n'
 blue='\e[1;34m%s\e[0m\n'
 
 # Set your Azure Subscription
-SUBSCRIPTION=xxxxxxxxxxxxx
+SUBSCRIPTION=xxxxxxxxxxxxxxxxx
 
 # choice of dev|prod
 ENVIRONMENT=dev
